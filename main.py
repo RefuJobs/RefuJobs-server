@@ -255,4 +255,4 @@ async def root():
     """
     루트 경로에 대한 간단한 테스트용 메시지 반환 엔드포인트.
     """
-    return {"message": "test~^^ talk samgukzi"}
+    return {"message": "I love you"}
