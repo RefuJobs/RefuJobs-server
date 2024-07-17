@@ -1,9 +1,7 @@
-# models.py
-
 # SQLAlchemy 모듈 임포트
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy import create_engine
 
 # SQLite 데이터베이스 파일 경로
@@ -35,6 +33,36 @@ class User(Base):
     gender = Column(String)  # 사용자 성별을 저장하는 문자열 컬럼
     country = Column(String)  # 사용자 출신 국가를 저장하는 문자열 컬럼
     birthdate = Column(Date)  # 사용자 생년월일을 저장하는 날짜형 컬럼
+
+    posts = relationship("Post", back_populates="author")  # 사용자와 게시글 간의 일대다 관계 설정
+
+# 게시글 정보를 저장하는 데이터베이스 모델 클래스
+class Post(Base):
+    """
+    게시글 정보를 저장하는 데이터베이스 모델 클래스.
+
+    Attributes:
+        __tablename__ (str): 데이터베이스 테이블 이름 "posts"
+        id (int): 게시글 고유 식별자, 기본 키 및 인덱스
+        title (str): 게시글 제목
+        company_name (str): 회사 이름
+        content (Text): 게시글 내용
+        hashtags (str): 해시태그
+        job_type (str): 직종
+        career (str): 경력
+        author_id (int): 작성자 고유 식별자, 외래 키
+    """
+    __tablename__ = "posts"
+    id = Column(Integer, primary_key=True, index=True)  # 기본 키 및 인덱스 역할을 수행하는 정수형 컬럼
+    title = Column(String, index=True)  # 게시글 제목을 저장하는 문자열 컬럼
+    company_name = Column(String, index=True)  # 회사 이름을 저장하는 문자열 컬럼
+    content = Column(Text)  # 게시글 내용을 저장하는 텍스트형 컬럼
+    hashtags = Column(String, index=True)  # 해시태그를 저장하는 문자열 컬럼
+    job_type = Column(String, index=True)  # 직종을 저장하는 문자열 컬럼
+    career = Column(String, index=True)  # 경력을 저장하는 문자열 컬럼
+    author_id = Column(Integer, ForeignKey("users.id"))  # 작성자 고유 식별자를 저장하는 정수형 외래 키 컬럼
+
+    author = relationship("User", back_populates="posts")  # 게시글과 작성자 간의 일대다 관계 설정
 
 # 데이터베이스 엔진 생성
 engine = create_engine(DATABASE_URL)  # SQLite 데이터베이스 엔진을 생성하고 파일 경로를 설정함

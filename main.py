@@ -1,5 +1,3 @@
-# main.py
-
 from fastapi import FastAPI, Depends, HTTPException, status  # FastAPI 관련 모듈 임포트
 from sqlalchemy.orm import Session  # SQLAlchemy ORM 세션 관련 모듈 임포트
 from passlib.context import CryptContext  # PassLib 패스워드 해싱 관련 모듈 임포트
@@ -7,7 +5,7 @@ from pydantic import BaseModel, EmailStr  # Pydantic 모듈에서 BaseModel, Ema
 from datetime import date, datetime, timedelta  # 날짜 및 시간 관련 모듈 임포트
 from jose import JWTError, jwt  # JWT 관련 모듈 임포트
 from fastapi.security import OAuth2PasswordBearer  # FastAPI OAuth2 비밀번호 베어러 임포트
-from models import User, SessionLocal, engine, Base  # 데이터베이스 모델 및 세션 관련 임포트
+from models import User, Post, SessionLocal, engine, Base  # 데이터베이스 모델 및 세션 관련 임포트
 
 # 데이터베이스 테이블 생성
 Base.metadata.create_all(bind=engine)
@@ -43,6 +41,24 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: str | None = None  # 토큰 데이터의 이메일 필드, 초기값은 None
+
+class PostBase(BaseModel):
+    title: str  # 게시글 제목
+    company_name: str  # 회사 이름
+    hashtags: str  # 해시태그
+    job_type: str  # 직종
+    experience: str  # 경력
+
+class PostCreate(PostBase):
+    content: str  # 게시글 내용
+
+class PostResponse(PostBase):
+    id: int  # 게시글 ID
+    author_id: int  # 작성자 ID
+    created_at: datetime  # 작성 시간
+
+    class Config:
+        from_attributes = True  # ORM 모델과 호환되도록 설정
 
 # 데이터베이스 세션을 가져오는 의존성 함수
 def get_db():
@@ -94,7 +110,6 @@ def authenticate_user(db: Session, email: str, password: str):
         return None  # 사용자가 조회되지 않거나 비밀번호가 일치하지 않으면 None을 반환함
     return user  # 인증된 사용자 객체를 반환함
 
-
 # 액세스 토큰 생성 함수
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     """
@@ -122,7 +137,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})  # to_encode 딕셔너리에 만료 시간(exp)을 추가함
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)  # JWT를 생성하여 encoded_jwt에 저장함
     return encoded_jwt  # 생성된 JWT 액세스 토큰을 반환함
-
 
 # 회원가입 엔드포인트
 @app.post("/register", response_model=dict)
@@ -161,7 +175,6 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)  # 데이터베이스에서 새로운 사용자 정보를 리프레시함
     return {"message": "User registered successfully"}  # 성공 메시지를 반환함
 
-
 # 로그인 엔드포인트
 @app.post("/login", response_model=Token)
 def login(user: UserLogin, db: Session = Depends(get_db)):
@@ -194,7 +207,6 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}  # 생성된 액세스 토큰과 토큰 타입을 반환함
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
 
 # 현재 사용자 가져오기 함수
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
@@ -233,7 +245,6 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
 
     return user  # 인증된 사용자 정보를 반환함
 
-
 # 보호된 엔드포인트
 @app.get("/users/me", response_model=UserBase)
 def read_users_me(current_user: User = Depends(get_current_user)):
@@ -249,6 +260,113 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     """
     return current_user  # 현재 로그인된 사용자의 정보를 반환함
 
+@app.post("/posts/", response_model=PostResponse)
+def create_post(post: PostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    새로운 게시글을 작성하는 엔드포인트.
+
+    Parameters:
+    - post (PostCreate): 게시글 생성을 위한 데이터를 담은 Pydantic 모델
+    - db (Session): SQLAlchemy 세션 객체
+    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
+
+    Returns:
+    - PostResponse: 생성된 게시글의 정보를 담은 Pydantic 모델
+    """
+    db_post = Post(**post.dict(), author_id=current_user.id)  # 게시글 데이터를 사용하여 새로운 Post 객체 생성
+    db.add(db_post)  # 데이터베이스에 새로운 게시글 추가
+    db.commit()  # 변경 사항을 데이터베이스에 커밋
+    db.refresh(db_post)  # 데이터베이스에서 새로운 게시글 정보를 리프레시
+    return db_post  # 생성된 게시글의 정보를 반환
+
+@app.get("/posts/", response_model=list[PostResponse])
+def read_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    게시글 목록을 조회하는 엔드포인트.
+
+    Parameters:
+    - skip (int): 조회할 게시글의 시작 위치 (기본값: 0)
+    - limit (int): 조회할 게시글의 최대 개수 (기본값: 10)
+    - db (Session): SQLAlchemy 세션 객체
+
+    Returns:
+    - list[PostResponse]: 조회된 게시글 목록을 담은 Pydantic 모델 리스트
+    """
+    posts = db.query(Post).offset(skip).limit(limit).all()  # 데이터베이스에서 게시글 조회
+    return posts  # 조회된 게시글 목록을 반환
+
+@app.get("/posts/{post_id}", response_model=PostResponse)
+def read_post(post_id: int, db: Session = Depends(get_db)):
+    """
+    특정 게시글을 조회하는 엔드포인트.
+
+    Parameters:
+    - post_id (int): 조회할 게시글의 ID
+    - db (Session): SQLAlchemy 세션 객체
+
+    Returns:
+    - PostResponse: 조회된 게시글의 정보를 담은 Pydantic 모델
+
+    Raises:
+    - HTTPException: 게시글을 찾을 수 없을 경우 404 예외를 발생시킴
+    """
+    post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID로 게시글 조회
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")  # 게시글을 찾을 수 없을 경우 404 예외 발생
+    return post  # 조회된 게시글의 정보를 반환
+
+@app.put("/posts/{post_id}", response_model=PostResponse)
+def update_post(post_id: int, post: PostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    특정 게시글을 수정하는 엔드포인트.
+
+    Parameters:
+    - post_id (int): 수정할 게시글의 ID
+    - post (PostCreate): 수정할 게시글 데이터를 담은 Pydantic 모델
+    - db (Session): SQLAlchemy 세션 객체
+    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
+
+    Returns:
+    - PostResponse: 수정된 게시글의 정보를 담은 Pydantic 모델
+
+    Raises:
+    - HTTPException: 게시글을 찾을 수 없거나 수정 권한이 없을 경우 404 또는 403 예외를 발생시킴
+    """
+    db_post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID로 게시글 조회
+    if not db_post:
+        raise HTTPException(status_code=404, detail="Post not found")  # 게시글을 찾을 수 없을 경우 404 예외 발생
+    if db_post.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this post")  # 수정 권한이 없을 경우 403 예외 발생
+    for key, value in post.dict().items():
+        setattr(db_post, key, value)  # 게시글 데이터를 업데이트
+    db.commit()  # 변경 사항을 데이터베이스에 커밋
+    db.refresh(db_post)  # 데이터베이스에서 수정된 게시글 정보를 리프레시
+    return db_post  # 수정된 게시글의 정보를 반환
+
+@app.delete("/posts/{post_id}", response_model=dict)
+def delete_post(post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    특정 게시글을 삭제하는 엔드포인트.
+
+    Parameters:
+    - post_id (int): 삭제할 게시글의 ID
+    - db (Session): SQLAlchemy 세션 객체
+    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
+
+    Returns:
+    - dict: 삭제된 게시글에 대한 성공 메시지
+
+    Raises:
+    - HTTPException: 게시글을 찾을 수 없거나 삭제 권한이 없을 경우 404 또는 403 예외를 발생시킴
+    """
+    db_post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID로 게시글 조회
+    if not db_post:
+        raise HTTPException(status_code=404, detail="Post not found")  # 게시글을 찾을 수 없을 경우 404 예외 발생
+    if db_post.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this post")  # 삭제 권한이 없을 경우 403 예외 발생
+    db.delete(db_post)  # 게시글을 데이터베이스에서 삭제
+    db.commit()  # 변경 사항을 데이터베이스에 커밋
+    return {"message": "Post deleted successfully"}  # 삭제된 게시글에 대한 성공 메시지 반환
 
 @app.get("/")
 async def root():
