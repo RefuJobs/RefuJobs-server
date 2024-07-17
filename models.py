@@ -71,6 +71,8 @@ class Post(Base):
 
     author = relationship("User", back_populates="posts")  # 게시글과 작성자 간의 일대다 관계 설정
 
+
+
 # 데이터베이스 엔진 생성
 engine = create_engine(DATABASE_URL)  # SQLite 데이터베이스 엔진을 생성하고 파일 경로를 설정함
 

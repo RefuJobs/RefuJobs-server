@@ -340,6 +340,11 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
     db.delete(db_post)  # 데이터베이스에서 게시글을 삭제함
     db.commit()  # 데이터베이스의 변경 사항을 커밋함
     return {"message": "Post deleted successfully"}  # 게시글 삭제 성공 메시지를 반환함
+
+@app.post("/resume")
+def resume_create():
+    return 
+
 @app.get("/")
 async def root():
     return {"message": "I love you"}

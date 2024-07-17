@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://172.16.7.192:8000"  # FastAPI 서버의 주소
+BASE_URL = "http://172.16.7.191:8000"  # FastAPI 서버의 주소
 
 def read_post(post_id: int):
     url = f"{BASE_URL}/posts/{post_id}"
