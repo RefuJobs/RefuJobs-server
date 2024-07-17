@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr  # Pydantic 모듈에서 BaseModel, Ema
 from datetime import date, datetime, timedelta  # 날짜 및 시간 관련 모듈 임포트
 from jose import JWTError, jwt  # JWT 관련 모듈 임포트
 from fastapi.security import OAuth2PasswordBearer  # FastAPI OAuth2 비밀번호 베어러 임포트
-from models import User, Post, SessionLocal, engine, Base  # 데이터베이스 모델 및 세션 관련 임포트
+from models import Resume, User, Post, SessionLocal, engine, Base  # 데이터베이스 모델 및 세션 관련 임포트
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -80,6 +80,29 @@ class PostResponse2(BaseModel):
     title: str
     hashtags : str
     author_id: int
+
+class ResumeBase(BaseModel):
+    title : str
+    name : str
+    gender : str
+    email : str
+    phonenumber : str
+    education : str
+    location : str
+    introduce :str
+    #피그마 디자인 꼭 확인하고 안되면 나중에 수정!!
+
+class ResumeCreate(ResumeBase):
+    pass
+
+class ResumeUpdate(ResumeBase):
+    pass
+
+class ResumeResponse(ResumeBase):
+    id: int
+
+    class Config:
+        from_attributes = True
 
 # 데이터베이스 세션을 가져오는 의존성 함수
 def get_db():
@@ -345,6 +368,50 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
 def resume_create():
     return 
 
-@app.get("/")
-async def root():
-    return {"message": "I love you"}
+# main.py (계속)
+
+# 이력서 작성 엔드포인트
+@app.post("/resumes/", response_model=ResumeResponse)
+def create_resume(resume: ResumeCreate, db: Session = Depends(get_db)):
+    db_resume = Resume(**resume.dict())
+    db.add(db_resume)
+    db.commit()
+    db.refresh(db_resume)
+    return db_resume
+
+# 이력서 목록 조회 엔드포인트
+@app.get("/resumes/", response_model=list[ResumeResponse])
+def read_resumes(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    resumes = db.query(Resume).offset(skip).limit(limit).all()
+    return resumes
+
+# 개별 이력서 조회 엔드포인트
+@app.get("/resumes/{resume_id}", response_model=ResumeResponse)
+def read_resume(resume_id: int, db: Session = Depends(get_db)):
+    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return resume
+
+# 이력서 수정 엔드포인트
+@app.put("/resumes/{resume_id}", response_model=ResumeResponse)
+def update_resume(resume_id: int, resume: ResumeUpdate, db: Session = Depends(get_db)):
+    db_resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    if not db_resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    for key, value in resume.dict().items():
+        setattr(db_resume, key, value)
+    db.commit()
+    db.refresh(db_resume)
+    return db_resume
+
+# 이력서 삭제 엔드포인트
+@app.delete("/resumes/{resume_id}", response_model=dict)
+def delete_resume(resume_id: int, db: Session = Depends(get_db)):
+    db_resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    if not db_resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    db.delete(db_resume)
+    db.commit()
+    return {"message": "Resume deleted successfully"}
+

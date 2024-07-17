@@ -71,7 +71,17 @@ class Post(Base):
 
     author = relationship("User", back_populates="posts")  # 게시글과 작성자 간의 일대다 관계 설정
 
-
+class Resume(Base):
+    __tablename__ = "resumes"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    name= Column(String,index=True)
+    gender= Column(String,index=True)
+    email= Column(String,index=True)
+    phonenumber=Column(String,index=True)
+    education=Column(String,index=True)
+    location=Column(String,index=True)
+    introduce=Column(String,index=True)
 
 # 데이터베이스 엔진 생성
 engine = create_engine(DATABASE_URL)  # SQLite 데이터베이스 엔진을 생성하고 파일 경로를 설정함
