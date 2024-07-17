@@ -233,7 +233,7 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
     Returns:
     - PostResponse: 작성된 게시글 정보를 담은 Pydantic 모델
     """
-    db_post = Post(**post.dict())  # 입력된 게시글 정보로 Post 객체를 생성함
+    db_post = Post(**post.dict(), author_id=1)  # 입력된 게시글 정보로 Post 객체를 생성함
     db.add(db_post)  # 데이터베이스에 새로운 게시글 정보를 추가함
     db.commit()  # 데이터베이스의 변경 사항을 커밋함
     db.refresh(db_post)  # 데이터베이스에서 최신 상태로 게시글 정보를 새로고침함

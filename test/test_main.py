@@ -162,12 +162,12 @@ if access_token:
 #         print(f"Failed to delete post: {delete_post_response.json()}")
 
 # 게시글 조회
-if access_token:
-    read_posts_response = read_posts(access_token)
+# if access_token:
+#     read_posts_response = read_posts(access_token)
 
-    if read_posts_response and read_posts_response.status_code == 200:
-        posts = read_posts_response.json()
-        print("Posts retrieved successfully:")
-        print(posts)
-    elif read_posts_response:
-        print(f"Failed to retrieve posts: {read_posts_response.json()}")
+#     if read_posts_response and read_posts_response.status_code == 200:
+#         posts = read_posts_response.json()
+#         print("Posts retrieved successfully:")
+#         print(posts)
+#     elif read_posts_response:
+#         print(f"Failed to retrieve posts: {read_posts_response.json()}")
