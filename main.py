@@ -47,7 +47,7 @@ class PostBase(BaseModel):
     company_name: str  # 회사 이름
     hashtags: str  # 해시태그
     job_type: str  # 직종
-    experience: str  # 경력
+    career: str  # 경력
 
 class PostCreate(PostBase):
     content: str  # 게시글 내용
@@ -55,7 +55,6 @@ class PostCreate(PostBase):
 class PostResponse(PostBase):
     id: int  # 게시글 ID
     author_id: int  # 작성자 ID
-    created_at: datetime  # 작성 시간
 
     class Config:
         from_attributes = True  # ORM 모델과 호환되도록 설정

@@ -1,8 +1,9 @@
 # SQLAlchemy 모듈 임포트
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy import create_engine
+from datetime import datetime  # datetime 모듈에서 datetime 클래스 import
 
 # SQLite 데이터베이스 파일 경로
 DATABASE_URL = "sqlite:///./test.db"
