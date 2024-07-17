@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://172.16.7.192:8000"  # FastAPI 서버의 주소 (로컬 환경에서는 포트 번호에 주의하세요)
+BASE_URL = "http://172.16.7.191:8000"  # FastAPI 서버의 주소 (로컬 환경에서는 포트 번호에 주의하세요)
 
 def login_user(email, password):
     url = f"{BASE_URL}/login"
@@ -116,25 +116,25 @@ else:
     print(f"Login failed: {login_response.json()}")
 
 # 게시글 작성
-if access_token:
-    create_post_response = create_post(
-        access_token=access_token,
-        title="아르바이트모집",
-        company_name="소진주식회사",
-        hashtags="#식대지원 #가족같은",  # 해시태그를 문자열로 전달
-        job_type="캐셔",
-        career="아르바이트 경험 1번이상",
-        content="가족같은분위기^^",
-        deadline= "2014-3-19",
-        salary= "1~2000만원",
-        joblocation= "대구",
-        Education= "고등학교 졸업"
-    )
+# if access_token:
+#     create_post_response = create_post(
+#         access_token=access_token,
+#         title="아르바이트모집",
+#         company_name="소진주식회사",
+#         hashtags="#식대지원 #가족같은",  # 해시태그를 문자열로 전달
+#         job_type="캐셔",
+#         career="아르바이트 경험 1번이상",
+#         content="가족같은분위기^^",
+#         deadline= "2014-3-19",
+#         salary= "1~2000만원",
+#         joblocation= "대구",
+#         Education= "고등학교 졸업"
+#     )
 
-    if create_post_response and create_post_response.status_code == 200:
-        print("Post created successfully!")
-    elif create_post_response:
-        print("Failed to create post: {create_post_response.json()}")
+#     if create_post_response and create_post_response.status_code == 200:
+#         print("Post created successfully!")
+#     elif create_post_response:
+#         print("Failed to create post: {create_post_response.json()}")
 
 # 게시글 수정
 # if access_token:
@@ -160,14 +160,14 @@ if access_token:
 #         print(f"Failed to update post: {update_post_response.json()}")
 
 # 게시글 삭제
-# if access_token:
-#     post_id_to_delete = 0  # 삭제할 게시글의 ID 입력
-#     delete_post_response = delete_post(access_token, post_id_to_delete)
+if access_token:
+    post_id_to_delete = 6  # 삭제할 게시글의 ID 입력
+    delete_post_response = delete_post(access_token, post_id_to_delete)
 
-#     if delete_post_response and delete_post_response.status_code == 200:
-#         print("Post deleted successfully!")
-#     elif delete_post_response:
-#         print(f"Failed to delete post: {delete_post_response.json()}")
+    if delete_post_response and delete_post_response.status_code == 200:
+        print("Post deleted successfully!")
+    elif delete_post_response:
+        print(f"Failed to delete post: {delete_post_response.json()}")
 
 # 게시글 조회
 # if access_token:
