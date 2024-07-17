@@ -74,7 +74,7 @@ def delete_post(access_token, post_id):
         print(f"Request Exception: {err}")
     return None
 
-def update_post(access_token, post_id, title, company_name, hashtags, job_type, career, content):
+def update_post(access_token, post_id,title, company_name, hashtags, job_type, career, content,deadline,salary,joblocation,Education):
     url = f"{BASE_URL}/posts/{post_id}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -86,7 +86,11 @@ def update_post(access_token, post_id, title, company_name, hashtags, job_type, 
         "hashtags": hashtags,  # 해시태그를 문자열로 전달
         "job_type": job_type,
         "career": career,
-        "content": content
+        "content": content,
+        "deadline": deadline,
+        "salary":salary,
+        "joblocation":joblocation,
+        "Education": Education
         
     }
     try:
@@ -112,48 +116,52 @@ else:
     print(f"Login failed: {login_response.json()}")
 
 # 게시글 작성
-if access_token:
-    create_post_response = create_post(
-        access_token=access_token,
-        title="아르바이트모집",
-        company_name="소진주식회사",
-        hashtags="#식대지원 #가족같은",  # 해시태그를 문자열로 전달
-        job_type="캐셔",
-        career="아르바이트 경험 1번이상",
-        content="가족같은분위기^^",
-        deadline= "2014-3-19",
-        salary= "1~2000만원",
-        joblocation= "대구",
-        Education= "고등학교 졸업"
-    )
-
-    if create_post_response and create_post_response.status_code == 200:
-        print("Post created successfully!")
-    elif create_post_response:
-        print("Failed to create post: {create_post_response.json()}")
-
-# 게시글 수정
 # if access_token:
-#     post_id_to_update = 3  # 수정할 게시글의 ID 입력
-#     update_post_response = update_post(
+#     create_post_response = create_post(
 #         access_token=access_token,
-#         post_id=post_id_to_update,
-#         title="Updated Title",
-#         company_name="Updated Company",
-#         hashtags="#updated, #tags",
-#         job_type="updated job",
-#         career="updated career",
-#         content="Updated content"
+#         title="아르바이트모집",
+#         company_name="소진주식회사",
+#         hashtags="#식대지원 #가족같은",  # 해시태그를 문자열로 전달
+#         job_type="캐셔",
+#         career="아르바이트 경험 1번이상",
+#         content="가족같은분위기^^",
+#         deadline= "2014-3-19",
+#         salary= "1~2000만원",
+#         joblocation= "대구",
+#         Education= "고등학교 졸업"
 #     )
 
-#     if update_post_response and update_post_response.status_code == 200:
-#         print("Post updated successfully!")
-#     elif update_post_response:
-#         print(f"Failed to update post: {update_post_response.json()}")
+#     if create_post_response and create_post_response.status_code == 200:
+#         print("Post created successfully!")
+#     elif create_post_response:
+#         print("Failed to create post: {create_post_response.json()}")
+
+# 게시글 수정
+if access_token:
+    post_id_to_update = 3  # 수정할 게시글의 ID 입력
+    update_post_response = update_post(
+        access_token=access_token,
+        post_id=post_id_to_update,
+        title="WORK TOGHTER!",
+        company_name="Updated Company",
+        hashtags="#gobal, #ENG",
+        job_type="security",
+        career="1year",
+        content="let's work!",
+        deadline= "2014-3-30",
+        salary= "2000~4000만원",
+        joblocation= "NewYork",
+        Education= "HighSchool"
+    )
+
+    if update_post_response and update_post_response.status_code == 200:
+        print("Post updated successfully!")
+    elif update_post_response:
+        print(f"Failed to update post: {update_post_response.json()}")
 
 # 게시글 삭제
 # if access_token:
-#     post_id_to_delete = 2  # 삭제할 게시글의 ID 입력
+#     post_id_to_delete = 1  # 삭제할 게시글의 ID 입력
 #     delete_post_response = delete_post(access_token, post_id_to_delete)
 
 #     if delete_post_response and delete_post_response.status_code == 200:
