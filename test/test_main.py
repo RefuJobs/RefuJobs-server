@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://localhost:8000"  # FastAPI 서버의 주소 (로컬 환경에서는 포트 번호에 주의하세요)
+BASE_URL = "http://192.168.62.13:8000"  # FastAPI 서버의 주소 (로컬 환경에서는 포트 번호에 주의하세요)
 
 def login_user(email, password):
     url = f"{BASE_URL}/login"
@@ -78,31 +78,31 @@ else:
     print(f"Login failed: {login_response.json()}")
 
 # 게시글 작성
-if access_token:
-    create_post_response = create_post(
-        access_token=access_token,
-        title="구인합니다",
-        company_name="소진주식회사",
-        hashtags="#가족같은회사, #환영",  # 해시태그를 문자열로 전달
-        job_type="사무직",
-        career="1년이상의 사무직 경험",
-        content="소진주식회사에 어서오세요! 함께일해요!"
-    )
+# if access_token:
+#     create_post_response = create_post(
+#         access_token=access_token,
+#         title="신입채용공고",
+#         company_name="조조컴퍼니",
+#         hashtags="#조조, #가족같은분위기",  # 해시태그를 문자열로 전달
+#         job_type="문관",
+#         career="1번이상의 전쟁참여경험",
+#         content="천하통일까지 함께하실 분들 모집"
+#     )
 
-    if create_post_response and create_post_response.status_code == 200:
-        print("Post created successfully!")
-    elif create_post_response:
-        print(f"Failed to create post: {create_post_response.json()}")
+#     if create_post_response and create_post_response.status_code == 200:
+#         print("Post created successfully!")
+#     elif create_post_response:
+#         print(f"Failed to create post: {create_post_response.json()}")
 
 # 게시글 삭제
-# if access_token:
-#     post_id_to_delete = 1  # 삭제할 게시글의 ID 입력
-#     delete_post_response = delete_post(access_token, post_id_to_delete)
+if access_token:
+    post_id_to_delete = 1  # 삭제할 게시글의 ID 입력
+    delete_post_response = delete_post(access_token, post_id_to_delete)
 
-#     if delete_post_response and delete_post_response.status_code == 200:
-#         print("Post deleted successfully!")
-#     elif delete_post_response:
-#         print(f"Failed to delete post: {delete_post_response.json()}")
+    if delete_post_response and delete_post_response.status_code == 200:
+        print("Post deleted successfully!")
+    elif delete_post_response:
+        print(f"Failed to delete post: {delete_post_response.json()}")
 
 # # 게시글 조회
 # if access_token:
