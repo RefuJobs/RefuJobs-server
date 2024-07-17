@@ -54,14 +54,20 @@ class Post(Base):
         author_id (int): 작성자 고유 식별자, 외래 키
     """
     __tablename__ = "posts"
-    id = Column(Integer, primary_key=True, index=True)  # 기본 키 및 인덱스 역할을 수행하는 정수형 컬럼
+    id = Column(Integer, primary_key=True, index=True)  # 기본 키 및 인덱스 역할을 수행하는 정수형 컬럼.
     title = Column(String, index=True)  # 게시글 제목을 저장하는 문자열 컬럼
     company_name = Column(String, index=True)  # 회사 이름을 저장하는 문자열 컬럼
     content = Column(Text)  # 게시글 내용을 저장하는 텍스트형 컬럼
     hashtags = Column(String, index=True)  # 해시태그를 저장하는 문자열 컬럼
     job_type = Column(String, index=True)  # 직종을 저장하는 문자열 컬럼
     career = Column(String, index=True)  # 경력을 저장하는 문자열 컬럼
+    deadline = Column(String, index=True)
+    salary = Column(String, index=True)
+    joblocation= Column(String, index=True)
+    Education= Column(String,index=True)
     author_id = Column(Integer, ForeignKey("users.id"))  # 작성자 고유 식별자를 저장하는 정수형 외래 키 컬럼
+    
+
 
     author = relationship("User", back_populates="posts")  # 게시글과 작성자 간의 일대다 관계 설정
 

@@ -59,6 +59,10 @@ class PostBase(BaseModel):
     hashtags: str  # 해시태그
     job_type: str  # 직종
     career: str  # 경력
+    deadline :str
+    salary :str
+    joblocation:str
+    Education:str
 
 class PostCreate(PostBase):
     content: str  # 게시글 내용
