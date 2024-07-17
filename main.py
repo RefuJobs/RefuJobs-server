@@ -6,11 +6,22 @@ from datetime import date, datetime, timedelta  # 날짜 및 시간 관련 모�
 from jose import JWTError, jwt  # JWT 관련 모듈 임포트
 from fastapi.security import OAuth2PasswordBearer  # FastAPI OAuth2 비밀번호 베어러 임포트
 from models import User, Post, SessionLocal, engine, Base  # 데이터베이스 모델 및 세션 관련 임포트
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 # 데이터베이스 테이블 생성
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()  # FastAPI 애플리케이션 객체 생성
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 모든 도메인 허용, 보안상 필요한 도메인으로 제한할 수도 있습니다.
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+)
 
 # 비밀번호 해시 알고리즘 설정
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -58,7 +69,6 @@ class PostResponse(PostBase):
 
     class Config:
         from_attributes = True  # ORM 모델과 호환되도록 설정
-
 # 데이터베이스 세션을 가져오는 의존성 함수
 def get_db():
     """
@@ -90,7 +100,7 @@ def verify_password(plain_password, hashed_password):
 def authenticate_user(db: Session, email: str, password: str):
     """
     사용자 로그인 인증을 위한 함수.
-
+ 
     Parameters:
     - db (Session): SQLAlchemy 세션 객체
     - email (str): 사용자 이메일 주소
@@ -168,208 +178,153 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         gender=user.gender,
         country=user.country,
         birthdate=user.birthdate
-    )  # 새로운 User 객체를 생성하여 데이터베이스에 저장할 사용자 정보를 설정함
+    )  # 입력된 사용자 정보로 새로운 User 객체를 생성함
     db.add(new_user)  # 데이터베이스에 새로운 사용자 정보를 추가함
-    db.commit()  # 변경 사항을 데이터베이스에 커밋함
-    db.refresh(new_user)  # 데이터베이스에서 새로운 사용자 정보를 리프레시함
-    return {"message": "User registered successfully"}  # 성공 메시지를 반환함
+    db.commit()  # 데이터베이스의 변경 사항을 커밋함
+    db.refresh(new_user)  # 데이터베이스에서 최신 상태로 사용자 정보를 새로고침함
+    return {"message": "User registered successfully"}  # 회원가입 성공 메시지를 반환함
 
 # 로그인 엔드포인트
 @app.post("/login", response_model=Token)
 def login(user: UserLogin, db: Session = Depends(get_db)):
     """
     사용자 로그인을 처리하는 엔드포인트.
-    입력된 이메일 주소와 비밀번호를 사용하여 사용자를 인증하고, 액세스 토큰을 반환함.
-
+    입력된 이메일 주소와 비밀번호를 검증하여, 액세스 토큰을 발급함.
+    
     Parameters:
-    - user (UserLogin): 로그인을 위한 사용자 정보를 담은 Pydantic 모델
+    - user (UserLogin): 사용자 로그인 정보를 담은 Pydantic 모델
     - db (Session): SQLAlchemy 세션 객체
-
+    
     Returns:
-    - Token: 생성된 액세스 토큰과 토큰 타입을 담은 Pydantic 모델
-
+    - Token: 발급된 액세스 토큰
+    
     Raises:
-    - HTTPException: 잘못된 이메일 주소 또는 비밀번호로 인해 인증에 실패했을 경우 401 예외를 발생시킴
+    - HTTPException: 잘못된 이메일 주소 또는 비밀번호로 로그인 시도했을 경우 401 예외를 발생시킴
     """
-    db_user = authenticate_user(db, user.email, user.password)  # 사용자 인증을 수행함
+    db_user = authenticate_user(db, user.email, user.password)  # 사용자 로그인 인증을 수행함
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"}
-        )  # 인증에 실패하면 HTTP 401 예외를 발생시킴
+        )  # 인증에 실패한 경우 HTTP 401 예외를 발생시킴
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 액세스 토큰의 만료 시간 설정
     access_token = create_access_token(
         data={"sub": db_user.email},
         expires_delta=access_token_expires
-    )  # JWT를 사용하여 액세스 토큰을 생성함
-    return {"access_token": access_token, "token_type": "bearer"}  # 생성된 액세스 토큰과 토큰 타입을 반환함
+    )  # 인증된 사용자 정보를 바탕으로 액세스 토큰을 생성함
+    return {"access_token": access_token, "token_type": "bearer"}  # 발급된 액세스 토큰을 반환함
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-# 현재 사용자 가져오기 함수
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    """
-    현재 로그인된 사용자를 가져오는 함수.
-    HTTP Bearer 토큰을 사용하여 사용자를 인증하고, 해당 사용자 정보를 반환함.
-
-    Parameters:
-    - db (Session): SQLAlchemy 세션 객체
-    - token (str): HTTP Bearer 토큰
-
-    Returns:
-    - User: 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
-
-    Raises:
-    - HTTPException: 사용자 인증에 실패했을 경우 401 예외를 발생시킴
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"}
-    )  # 인증 실패 시 반환될 HTTP 401 예외 객체 생성
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  # JWT 디코딩을 통해 페이로드 추출
-        email: str = payload.get("sub")  # JWT 페이로드에서 서브젝트(sub) 정보 추출
-        if email is None:
-            raise credentials_exception  # 서브젝트 정보가 없으면 인증 실패 예외를 발생시킴
-        token_data = TokenData(email=email)  # 추출한 이메일 정보로 TokenData 객체 생성
-    except JWTError:
-        raise credentials_exception  # JWT 디코딩 중 오류가 발생하면 인증 실패 예외를 발생시킴
-
-    user = db.query(User).filter(User.email == token_data.email).first()  # 데이터베이스에서 이메일로 사용자 조회
-    if user is None:
-        raise credentials_exception  # 조회된 사용자가 없으면 인증 실패 예외를 발생시킴
-
-    return user  # 인증된 사용자 정보를 반환함
-
-# 보호된 엔드포인트
-@app.get("/users/me", response_model=UserBase)
-def read_users_me(current_user: User = Depends(get_current_user)):
-    """
-    로그인된 사용자의 정보를 가져오는 보호된 엔드포인트.
-    현재 로그인된 사용자의 정보를 반환함.
-
-    Parameters:
-    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
-
-    Returns:
-    - UserBase: 현재 로그인된 사용자의 기본 정보를 담은 Pydantic 모델
-    """
-    return current_user  # 현재 로그인된 사용자의 정보를 반환함
-
+# 게시글 작성 엔드포인트
 @app.post("/posts/", response_model=PostResponse)
-def create_post(post: PostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_post(post: PostCreate, db: Session = Depends(get_db)):
     """
-    새로운 게시글을 작성하는 엔드포인트.
-
+    사용자가 게시글을 작성하는 엔드포인트.
+    입력된 게시글 정보를 데이터베이스에 저장하고, 작성된 게시글을 반환함.
+    
     Parameters:
-    - post (PostCreate): 게시글 생성을 위한 데이터를 담은 Pydantic 모델
+    - post (PostCreate): 게시글 작성을 위한 정보를 담은 Pydantic 모델
     - db (Session): SQLAlchemy 세션 객체
-    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
-
+    
     Returns:
-    - PostResponse: 생성된 게시글의 정보를 담은 Pydantic 모델
+    - PostResponse: 작성된 게시글 정보를 담은 Pydantic 모델
     """
-    db_post = Post(**post.dict(), author_id=current_user.id)  # 게시글 데이터를 사용하여 새로운 Post 객체 생성
-    db.add(db_post)  # 데이터베이스에 새로운 게시글 추가
-    db.commit()  # 변경 사항을 데이터베이스에 커밋
-    db.refresh(db_post)  # 데이터베이스에서 새로운 게시글 정보를 리프레시
-    return db_post  # 생성된 게시글의 정보를 반환
+    db_post = Post(**post.dict())  # 입력된 게시글 정보로 Post 객체를 생성함
+    db.add(db_post)  # 데이터베이스에 새로운 게시글 정보를 추가함
+    db.commit()  # 데이터베이스의 변경 사항을 커밋함
+    db.refresh(db_post)  # 데이터베이스에서 최신 상태로 게시글 정보를 새로고침함
+    return db_post  # 작성된 게시글 정보를 반환함
 
+# 게시글 목록 조회 엔드포인트
 @app.get("/posts/", response_model=list[PostResponse])
 def read_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     """
     게시글 목록을 조회하는 엔드포인트.
-
+    입력된 페이징 파라미터에 따라 데이터베이스에서 게시글을 조회하고, 조회된 게시글 목록을 반환함.
+    
     Parameters:
-    - skip (int): 조회할 게시글의 시작 위치 (기본값: 0)
-    - limit (int): 조회할 게시글의 최대 개수 (기본값: 10)
+    - skip (int): 건너뛸 게시글 개수
+    - limit (int): 조회할 게시글 개수
     - db (Session): SQLAlchemy 세션 객체
-
+    
     Returns:
-    - list[PostResponse]: 조회된 게시글 목록을 담은 Pydantic 모델 리스트
+    - list[PostResponse]: 조회된 게시글 목록을 담은 리스트
     """
-    posts = db.query(Post).offset(skip).limit(limit).all()  # 데이터베이스에서 게시글 조회
-    return posts  # 조회된 게시글 목록을 반환
+    posts = db.query(Post).offset(skip).limit(limit).all()  # 데이터베이스에서 게시글을 조회함
+    return posts  # 조회된 게시글 목록을 반환함
 
+# 개별 게시글 조회 엔드포인트
 @app.get("/posts/{post_id}", response_model=PostResponse)
 def read_post(post_id: int, db: Session = Depends(get_db)):
     """
     특정 게시글을 조회하는 엔드포인트.
-
+    입력된 게시글 ID를 사용하여 데이터베이스에서 게시글을 조회하고, 조회된 게시글을 반환함.
+    
     Parameters:
     - post_id (int): 조회할 게시글의 ID
     - db (Session): SQLAlchemy 세션 객체
-
+    
     Returns:
-    - PostResponse: 조회된 게시글의 정보를 담은 Pydantic 모델
-
+    - PostResponse: 조회된 게시글 정보를 담은 Pydantic 모델
+    
     Raises:
-    - HTTPException: 게시글을 찾을 수 없을 경우 404 예외를 발생시킴
+    - HTTPException: 해당 게시글 ID가 존재하지 않을 경우 404 예외를 발생시킴
     """
-    post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID로 게시글 조회
+    post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID를 사용하여 데이터베이스에서 게시글을 조회함
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")  # 게시글을 찾을 수 없을 경우 404 예외 발생
-    return post  # 조회된 게시글의 정보를 반환
+        raise HTTPException(status_code=404, detail="Post not found")  # 게시글이 존재하지 않으면 HTTP 404 예외를 발생시킴
+    return post  # 조회된 게시글 정보를 반환함
 
+# 게시글 수정 엔드포인트
 @app.put("/posts/{post_id}", response_model=PostResponse)
-def update_post(post_id: int, post: PostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_post(post_id: int, post: PostCreate, db: Session = Depends(get_db)):
     """
-    특정 게시글을 수정하는 엔드포인트.
-
+    사용자가 게시글을 수정하는 엔드포인트.
+    입력된 게시글 ID와 수정할 정보를 사용하여 데이터베이스에서 게시글을 수정하고, 수정된 게시글을 반환함.
+    
     Parameters:
     - post_id (int): 수정할 게시글의 ID
-    - post (PostCreate): 수정할 게시글 데이터를 담은 Pydantic 모델
+    - post (PostCreate): 수정할 게시글 정보를 담은 Pydantic 모델
     - db (Session): SQLAlchemy 세션 객체
-    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
-
+    
     Returns:
-    - PostResponse: 수정된 게시글의 정보를 담은 Pydantic 모델
-
+    - PostResponse: 수정된 게시글 정보를 담은 Pydantic 모델
+    
     Raises:
-    - HTTPException: 게시글을 찾을 수 없거나 수정 권한이 없을 경우 404 또는 403 예외를 발생시킴
+    - HTTPException: 해당 게시글 ID가 존재하지 않을 경우 404 예외를 발생시킴
     """
-    db_post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID로 게시글 조회
+    db_post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID를 사용하여 데이터베이스에서 게시글을 조회함
     if not db_post:
-        raise HTTPException(status_code=404, detail="Post not found")  # 게시글을 찾을 수 없을 경우 404 예외 발생
-    if db_post.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this post")  # 수정 권한이 없을 경우 403 예외 발생
+        raise HTTPException(status_code=404, detail="Post not found")  # 게시글이 존재하지 않으면 HTTP 404 예외를 발생시킴
     for key, value in post.dict().items():
-        setattr(db_post, key, value)  # 게시글 데이터를 업데이트
-    db.commit()  # 변경 사항을 데이터베이스에 커밋
-    db.refresh(db_post)  # 데이터베이스에서 수정된 게시글 정보를 리프레시
-    return db_post  # 수정된 게시글의 정보를 반환
+        setattr(db_post, key, value)  # 입력된 수정 정보로 게시글 객체를 업데이트함
+    db.commit()  # 데이터베이스의 변경 사항을 커밋함
+    db.refresh(db_post)  # 데이터베이스에서 최신 상태로 게시글 정보를 새로고침함
+    return db_post  # 수정된 게시글 정보를 반환함
 
+# 게시글 삭제 엔드포인트
 @app.delete("/posts/{post_id}", response_model=dict)
-def delete_post(post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def delete_post(post_id: int, db: Session = Depends(get_db)):
     """
-    특정 게시글을 삭제하는 엔드포인트.
-
+    사용자가 게시글을 삭제하는 엔드포인트.
+    입력된 게시글 ID를 사용하여 데이터베이스에서 게시글을 삭제하고, 삭제 성공 메시지를 반환함.
+    
     Parameters:
     - post_id (int): 삭제할 게시글의 ID
     - db (Session): SQLAlchemy 세션 객체
-    - current_user (User): 현재 로그인된 사용자 정보를 담은 SQLAlchemy 모델
-
+    
     Returns:
-    - dict: 삭제된 게시글에 대한 성공 메시지
-
+    - dict: 게시글 삭제 성공 메시지
+    
     Raises:
-    - HTTPException: 게시글을 찾을 수 없거나 삭제 권한이 없을 경우 404 또는 403 예외를 발생시킴
+    - HTTPException: 해당 게시글 ID가 존재하지 않을 경우 404 예외를 발생시킴
     """
-    db_post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID로 게시글 조회
+    db_post = db.query(Post).filter(Post.id == post_id).first()  # 게시글 ID를 사용하여 데이터베이스에서 게시글을 조회함
     if not db_post:
-        raise HTTPException(status_code=404, detail="Post not found")  # 게시글을 찾을 수 없을 경우 404 예외 발생
-    if db_post.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this post")  # 삭제 권한이 없을 경우 403 예외 발생
-    db.delete(db_post)  # 게시글을 데이터베이스에서 삭제
-    db.commit()  # 변경 사항을 데이터베이스에 커밋
-    return {"message": "Post deleted successfully"}  # 삭제된 게시글에 대한 성공 메시지 반환
-
+        raise HTTPException(status_code=404, detail="Post not found")  # 게시글이 존재하지 않으면 HTTP 404 예외를 발생시킴
+    db.delete(db_post)  # 데이터베이스에서 게시글을 삭제함
+    db.commit()  # 데이터베이스의 변경 사항을 커밋함
+    return {"message": "Post deleted successfully"}  # 게시글 삭제 성공 메시지를 반환함
 @app.get("/")
 async def root():
-    """
-    루트 경로에 대한 간단한 테스트용 메시지 반환 엔드포인트.
-    """
     return {"message": "I love you"}
