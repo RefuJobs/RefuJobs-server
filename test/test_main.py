@@ -137,27 +137,27 @@ else:
 #         print("Failed to create post: {create_post_response.json()}")
 
 # 게시글 수정
-if access_token:
-    post_id_to_update = 3  # 수정할 게시글의 ID 입력
-    update_post_response = update_post(
-        access_token=access_token,
-        post_id=post_id_to_update,
-        title="WORK TOGHTER!",
-        company_name="Updated Company",
-        hashtags="#gobal, #ENG",
-        job_type="security",
-        career="1year",
-        content="let's work!",
-        deadline= "2014-3-30",
-        salary= "2000~4000만원",
-        joblocation= "NewYork",
-        Education= "HighSchool"
-    )
+# if access_token:
+#     post_id_to_update = 3  # 수정할 게시글의 ID 입력
+#     update_post_response = update_post(
+#         access_token=access_token,
+#         post_id=post_id_to_update,
+#         title="WORK TOGHTER!",
+#         company_name="Updated Company",
+#         hashtags="#gobal, #ENG",
+#         job_type="security",
+#         career="1year",
+#         content="let's work!",
+#         deadline= "2014-3-30",
+#         salary= "2000~4000만원",
+#         joblocation= "NewYork",
+#         Education= "HighSchool"
+#     )
 
-    if update_post_response and update_post_response.status_code == 200:
-        print("Post updated successfully!")
-    elif update_post_response:
-        print(f"Failed to update post: {update_post_response.json()}")
+#     if update_post_response and update_post_response.status_code == 200:
+#         print("Post updated successfully!")
+#     elif update_post_response:
+#         print(f"Failed to update post: {update_post_response.json()}")
 
 # 게시글 삭제
 # if access_token:
@@ -170,12 +170,12 @@ if access_token:
 #         print(f"Failed to delete post: {delete_post_response.json()}")
 
 # 게시글 조회
-# if access_token:
-#     read_posts_response = read_posts(access_token)
+if access_token:
+    read_posts_response = read_posts(access_token)
 
-#     if read_posts_response and read_posts_response.status_code == 200:
-#         posts = read_posts_response.json()
-#         print("Posts retrieved successfully:")
-#         print(posts)
-#     elif read_posts_response:
-#         print(f"Failed to retrieve posts: {read_posts_response.json()}")
+    if read_posts_response and read_posts_response.status_code == 200:
+        posts = read_posts_response.json()
+        print("Posts retrieved successfully:")
+        print(posts)
+    elif read_posts_response:
+        print(f"Failed to retrieve posts: {read_posts_response.json()}")

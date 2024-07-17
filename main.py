@@ -73,6 +73,14 @@ class PostResponse(PostBase):
 
     class Config:
         from_attributes = True  # ORM 모델과 호환되도록 설정
+
+class PostResponse2(BaseModel):
+    id: int
+    company_name : str
+    title: str
+    hashtags : str
+    author_id: int
+
 # 데이터베이스 세션을 가져오는 의존성 함수
 def get_db():
     """
@@ -240,7 +248,7 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
     return db_post  # 작성된 게시글 정보를 반환함
 
 # 게시글 목록 조회 엔드포인트
-@app.get("/posts/", response_model=list[PostResponse])
+@app.get("/posts/", response_model=list[PostResponse2])
 def read_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     """
     게시글 목록을 조회하는 엔드포인트.
@@ -255,7 +263,10 @@ def read_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     - list[PostResponse]: 조회된 게시글 목록을 담은 리스트
     """
     posts = db.query(Post).offset(skip).limit(limit).all()  # 데이터베이스에서 게시글을 조회함
-    return posts  # 조회된 게시글 목록을 반환함
+    return [
+        PostResponse2(id=post.id,company_name=post.company_name,hashtags=post.hashtags, title=post.title, author_id=post.author_id)
+        for post in posts
+    ]
 
 # 개별 게시글 조회 엔드포인트
 @app.get("/posts/{post_id}", response_model=PostResponse)
